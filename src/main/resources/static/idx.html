@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>短链接生成</title>
+    <link rel="stylesheet" href="lib/layui/css/layui.css">
+    <style>
+        html{
+            height: 100%;
+        }
+        body {
+            background: url("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1528432108205&di=147b90d46bbafc6230ce322a72e3b623&imgtype=0&src=http%3A%2F%2Fh.hiphotos.baidu.com%2Fzhidao%2Fpic%2Fitem%2Fc2fdfc039245d6885bc3be94a2c27d1ed21b2438.jpg") no-repeat;
+            -webkit-background-size: cover;
+            background-size: cover;
+        }
+        .main{
+            padding-top: 12%;
+        }
+        h1, h4 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .layui-card {
+            padding: 10px;
+        }
+
+        .tag {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-container main">
+    <div class="layui-row">
+        <div class="layui-col-sm8 layui-col-sm-offset2">
+            <h1>短链接生成</h1>
+            <h4>可生成数字、字母、数字字母混合、指定字符串、指定长度的短链接</h4>
+            <div class="layui-card">
+                <form class="layui-form" action="">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">原始链接</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="url" lay-verify="required|url" placeholder="请输入原始链接"
+                                   autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">生成方式</label>
+                        <div class="layui-input-block">
+                            <input type="radio" name="mode" value="1" title="随机字符" checked lay-filter="mode">
+                            <input type="radio" name="mode" value="0" title="自定义字符" lay-filter="mode">
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="layui-form-item tag">
+                        <label class="layui-form-label">指定字符串</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="tag" lay-verify="tag" placeholder="请输入要设置的字符串"
+                                   autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-form-mid layui-word-aux">4~16个字符长度的数字、字母</div>
+                    </div>
+                    <div class="layui-form-item random">
+                        <label class="layui-form-label">选择字符集</label>
+                        <div class="layui-input-inline">
+                            <select name="type">
+                                <option value="0">纯数字</option>
+                                <option value="1">小写字母</option>
+                                <option value="2">大写字母</option>
+                                <option value="3">大小写字母混合</option>
+                                <option value="4" selected>数字和大小写字母混合</option>
+                            </select>
+                        </div>
+                        <label class="layui-form-label">生成长度</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="length" lay-verify="number|length" placeholder="请输入长度"
+                                   autocomplete="off" class="layui-input" value="6">
+                        </div>
+                        <div class="layui-form-mid layui-word-aux">长度在4-16之间</div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">生成模式</label>
+                            <div class="layui-input-block">
+                                <input type="radio" name="generator" value="1" title="UUID方式" checked>
+                                <input type="radio" name="generator" value="0" title="MD5方式">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="submit">生成</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="lib/layui/layui.js"></script>
+<script>
+    layui.use(['jquery', 'form'], function () {
+        var $ = layui.$,
+            form = layui.form,
+            mode = 1;
+
+        // 表单验证
+        form.verify({
+            tag: function (value, item) {
+                if (mode == 0 && !new RegExp("^[a-zA-Z0-9]{4,16}").test(value)) {
+                    return '只能设置为4~16个字符的数字、字母';
+                }
+            },
+            length: function (value, item) {
+                if (mode == 1 && (value < 4 || value > 16)) {
+                    console.log(mode)
+                    return '字符长度在4-16之间';
+                }
+            }
+        });
+
+        //表单提交
+        form.on('submit(submit)', function (data) {
+            delete data.field['mode']
+            if (mode == 0) {
+                delete data.field['generator']
+                delete data.field['length']
+                delete data.field['type']
+            } else if (mode == 1) {
+                delete data.field['tag']
+            }
+            $.ajax({
+                url: "shortUrl"
+                , type: "POST"
+                , data: data.field
+                ,
+                success: function (data) {
+                    if (data.code == 200) {
+                        host = window.location.protocol + "//" + window.location.host + window.location.pathname.substr(0, window.location.pathname.lastIndexOf('/') + 1)
+                        host += data.data
+
+                        layer.open({
+                            title: '生成成功'
+                            , content: "<a href='" + host + "' target='_blank'>" + host + "</a>"
+                            , shade: 0.1,
+                            shadeClose: true
+                        });
+                    } else {
+                        layer.open({
+                            title: '生成失败'
+                            , content: data.msg
+                            , shade: 0.1,
+                            shadeClose: true
+                        });
+                    }
+                }
+                , error: function () {
+                    layer.open({
+                        title: '生成失败'
+                        , content: "请求服务器失败，请重试"
+                        , shade: 0.1,
+                        shadeClose: true
+                    });
+                }
+            })
+            return false;
+        });
+
+        form.on('radio(mode)', function (data) {
+            mode = data.value
+            if (data.value == 1) {
+                $(".tag").hide();
+                $(".random").show();
+            } else {
+                $(".tag").show();
+                $(".random").hide();
+            }
+        });
+    });
+</script>
+</body>
+
+</html>
